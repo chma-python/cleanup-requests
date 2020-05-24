@@ -12,6 +12,7 @@ twilio_auth_token = os.environ['TWILIO_AUTH_TOKEN']
 airtable_auth_token = os.environ['AIRTABLE_AUTH_TOKEN']
 
 andy_number = '+13144971398'
+will_number = '+19087938789'
 
 client = Client(account_sid, twilio_auth_token)
 
@@ -34,16 +35,16 @@ def pollAirtable():
         if ('markers', True) in output_:
             body = """
             \U0001F31F
-            """ + str(output_)            
+            """ + str("HELLO WILL")            
             
         else:
-            body = "swing and a miss!"
+            body = "HELLO WILL"
             print(output_)
 
         message = client.messages.create(
                                   from_='+13474180185',
                                   body=body,
-                                  to=andy_number)
+                                  to=will_number)
 
         # print(message.sid)
         return message.sid, 200
