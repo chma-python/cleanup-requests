@@ -1,67 +1,56 @@
+from flask import Flask, request, jsonify, make_response
+from twilio.rest import Client
 import os
-from fastapi import FastAPI, Form, Response, Request, HTTPException
-from slackers.server import router
-from slackers.hooks import events
-import logging
-from twilio.twiml.messaging_response import MessagingResponse
-from twilio.request_validator import RequestValidator 
-import time
-import hmac
-import hashlib
-import binascii
+import json
+import requests
 
-app = FastAPI()
-app.include_router(router)
-
-log = logging.getLogger(__name__)
-
-# token: xoxb-1134762843828-1125037727430-YczAdMzPuviJspRA4jY2kuw2
-
-@events.on("message.channels")
-def handle_mention(payload):
-    log.info("message was posted")
-    log.debug(payload)
+app = Flask(__name__)
 
 
+account_sid = os.environ['ACCOUNT_SID']
+twilio_auth_token = os.environ['TWILIO_AUTH_TOKEN']
+airtable_auth_token = os.environ['AIRTABLE_AUTH_TOKEN']
 
-@events.post("/nothook")
-async def chat(
-    request: Request, From: str = Form(...), Body: str = Form(...) 
-):
-    validator = RequestValidator(os.environ["TWILIO_AUTH_TOKEN"])
-    form_ = await request.form()
-    if not validator.validate(
-        str(request.url), 
-        form_, 
-        request.headers.get("X-Twilio-Signature", "")
-    ):
-        raise HTTPException(status_code=400, detail="Error in Twilio Signature")
+andy_number = '+13144971398'
 
-    response = MessagingResponse()
-    msg = response.message(f"Hi {From}, you said: {Body}")
-    return Response(content=str(response), media_type="application/xml")
+client = Client(account_sid, twilio_auth_token)
 
-# async def chat(
-#     request: Request, From: str = Form(...), Body: str = Form(...) 
-# ):
-#     validator = RequestValidator(os.environ["TWILIO_AUTH_TOKEN"])
-#     form_ = await request.form()
-#     if not validator.validate(
-#         str(request.url), 
-#         form_, 
-#         request.headers.get("X-Twilio-Signature", "")
-#     ):
-#         raise HTTPException(status_code=400, detail="Error in Twilio Signature")
+@app.route('/funky/', methods=['GET'])
+def pollAirtable():
+    url = 'https://api.airtable.com/v0/app4QOHvFilnp0nMi/pieces'
+    headers = {"Authorization": "Bearer {}".format(airtable_auth_token)}
+    params = {
+            'maxRecords': 10,
+            'view':'Grid view',
+            'sortField':'edited',
+            'sortDirection': 'desc'
+        }
 
-#     response = MessagingResponse()
-#     msg = response.message(f"Hi {From}, you said: {Body}")
-#     return Response(content=str(response), media_type="application/xml")
+    r = requests.get(url, headers=headers, params=params)
 
-# @app.get("/")
-# def read_root():
-#     return {"Hello": "World"}
+    if r.status_code == 200:
+        output_ = [(r['fields']['Name'], r['fields']['Done']) for r in r.json()['records'] if 'Done' in r['fields']]
+        
+        if ('markers', True) in output_:
+            body = """
+            \U0001F31F
+            """ + str(output_)            
+            
+        else:
+            body = "swing and a miss!"
+            print(output_)
 
+        message = client.messages.create(
+                                  from_='+13474180185',
+                                  body=body,
+                                  to=andy_number)
 
-# @app.get("/items/{item_id}")
-# def read_item(item_id: int, q: str = None):
-#     return {"item_id": item_id, "q": q}
+        # print(message.sid)
+        return message.sid, 200
+            
+    else:
+        # print('error')
+        return 'error', r.status_code
+
+if __name__ == "__main__":
+    app.run(port=3000)
