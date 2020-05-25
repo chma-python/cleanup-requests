@@ -10,9 +10,8 @@ app = Flask(__name__)
 account_sid = os.environ['ACCOUNT_SID']
 twilio_auth_token = os.environ['TWILIO_AUTH_TOKEN']
 airtable_auth_token = os.environ['AIRTABLE_AUTH_TOKEN']
-
-andy_number = '+13144971398'
-will_number = '+19087938789'
+to_number = os.environ['ANDY_NUMBER']
+chma_number = os.environ['CHMA_NUMBER']
 
 client = Client(account_sid, twilio_auth_token)
 
@@ -34,17 +33,17 @@ def pollAirtable():
         
         if ('markers', True) in output_:
             body = """
-            \U0001F31F
-            """ + str("HELLO WILL")            
+            \U0001F31F markers is True!
+            """           
             
         else:
-            body = "HELLO WILL"
+            body = "markers is not True"
             print(output_)
 
         message = client.messages.create(
-                                  from_='+13474180185',
+                                  from_=chma_number,
                                   body=body,
-                                  to=will_number)
+                                  to=to_number)
 
         # print(message.sid)
         return message.sid, 200
