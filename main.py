@@ -1,56 +1,41 @@
-from flask import Flask, request, jsonify, make_response
 from twilio.rest import Client
 import os
 import json
 import requests
 
-app = Flask(__name__)
-
-
-account_sid = os.environ['ACCOUNT_SID']
-twilio_auth_token = os.environ['TWILIO_AUTH_TOKEN']
-airtable_auth_token = os.environ['AIRTABLE_AUTH_TOKEN']
-to_number = os.environ['ANDY_NUMBER']
-chma_number = os.environ['CHMA_NUMBER']
-
-client = Client(account_sid, twilio_auth_token)
-
-@app.route('/funky/', methods=['GET'])
-def pollAirtable():
-    url = 'https://api.airtable.com/v0/app4QOHvFilnp0nMi/pieces'
-    headers = {"Authorization": "Bearer {}".format(airtable_auth_token)}
-    params = {
+def cleanupRequests():
+    headers = {"Authorization": "Bearer {}".format(os.environ['AIRTABLE_AUTH_TOKEN'])}
+    params =  params = {
             'maxRecords': 10,
-            'view':'Grid view',
-            'sortField':'edited',
-            'sortDirection': 'desc'
+            'view': 'All Requests + Data',
+            'sortField':'Last Modified',
+            'sortDirection': 'asc'
         }
 
-    r = requests.get(url, headers=headers, params=params)
+    r = requests.get(os.environ['PROD_URL'], headers=headers, params=params)
 
-    if r.status_code == 200:
-        output_ = [(r['fields']['Name'], r['fields']['Done']) for r in r.json()['records'] if 'Done' in r['fields']]
+    completed = [record for record in r.json()['records'] if record['fields']['Status'] == 'Request Complete']
+
+    client = Client(os.environ['ACCOUNT_SID'], os.environ['TWILIO_AUTH_TOKEN'])
+
+    for record in completed:
         
-        if ('markers', True) in output_:
-            body = """
-            \U0001F31F markers is True!
-            """           
-            
-        else:
-            body = "markers is not True"
-            print(output_)
+        data = {
+            'fields':
+              {'Message': "",
+               'First Name': ""
+              }
+            }
 
-        message = client.messages.create(
-                                  from_=chma_number,
-                                  body=body,
-                                  to=to_number)
+        r = requests.patch(
+            os.environ['PROD_URL'] + record['id'] , headers=headers, json=data
+        )
 
-        # print(message.sid)
-        return message.sid, 200
-            
-    else:
-        # print('error')
-        return 'error', r.status_code
+        # deletion code should look something like this
+        call_sid = record['fields']['Twilio Call Sid']
+        recordings = client.recordings.list(call_sid=call_sid)
+        for record in recordings:
+            client.recordings(record['sid']).delete()
 
 if __name__ == "__main__":
-    app.run(port=3000)
+    cleanupRequests()
