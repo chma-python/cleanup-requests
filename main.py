@@ -4,11 +4,11 @@ import json
 import requests
 
 # def cleanupRequests(n=10):
-    """
-    Finds the last n records in the Requests table where "Status" = "Request Complete" that were last modified at least 30 days ago, erases the "Message" and "First Name" fields and deletes any recordings associated with the call.
-    """
+"""
+Finds the last n records in the Requests table where "Status" = "Request Complete" that were last modified at least 30 days ago, erases the "Message" and "First Name" fields and deletes any recordings associated with the call.
+"""
 
-    # formula for filtering data from airtable
+# formula for filtering data from airtable
 formula = 'AND(DATETIME_DIFF(NOW(), {Last Modified}, "days") > 30, Status = "Request Complete")'
 
 # airtable query
