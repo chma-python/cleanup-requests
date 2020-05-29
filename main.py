@@ -58,6 +58,7 @@ def cleanupRequests(n=10):
                 client.recordings(recording_sid).delete()
 
             # confirm deletion
+            successfully_deleted = 0
             r = requests.get(os.environ['PROD_URL'] + record['id'], headers=headers)
             call = client.calls(call_sid).fetch()
 
@@ -66,9 +67,12 @@ def cleanupRequests(n=10):
                    'First Name' not in r.json().keys(),
                    len(call.recordings.list()) == 0]):
                 print('succesfully deleted')
+                successfully_deleted += 1
                 
             else:
                 print('error')
+
+    return successfully_deleted
 
 if __name__ == "__main__":
     app.run()
