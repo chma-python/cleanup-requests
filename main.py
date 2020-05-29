@@ -72,7 +72,7 @@ def cleanupRequests(n=10):
             else:
                 print('error')
 
-    return successfully_deleted
+    return str(successfully_deleted)
 
 if __name__ == "__main__":
     app.run()
